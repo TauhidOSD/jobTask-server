@@ -32,20 +32,49 @@ async function run() {
 
     const serviceCollection = client.db('JobTask').collection('products');
 
-    app.get('/products', async(req, res) =>{
-        const page = parseInt(req.query.page);
-        const size = parseInt(req.query.size);
 
-        console.log('pagination query', page, size);
+    app.get('/products', async (req, res) => {
+      const page = parseInt(req.query.page) || 0;
+      const size = parseInt(req.query.size) || 10;
+      const search = req.query.search || ''; // Get search query
+  
+      console.log('pagination query', page, size, search);
+  
+      try {
+          const cursor = serviceCollection.find({
+              productName: { $regex: search, $options: 'i' } // Case-insensitive search
+          });
+          
+          const result = await cursor
+              .skip(page * size)
+              .limit(size)
+              .toArray();
+          
+          // Count the total number of matching documents
+          const count = await serviceCollection.countDocuments({
+              productName: { $regex: search, $options: 'i' }
+          });
+  
+          res.send({ results: result, count });
+      } catch (error) {
+          res.status(500).send(error.toString());
+      }
+  });
+  
+    // app.get('/products', async(req, res) =>{
+    //     const page = parseInt(req.query.page);
+    //     const size = parseInt(req.query.size);
 
-        const cursor = serviceCollection.find();
-        const result =await cursor
-        .skip(page * size)
-        .limit(size)
-        .toArray();
+    //     console.log('pagination query', page, size);
+
+    //     const cursor = serviceCollection.find();
+    //     const result =await cursor
+    //     .skip(page * size)
+    //     .limit(size)
+    //     .toArray();
         
-        res.send(result);
-    })
+    //     res.send(result);
+    // })
 
    
    app.get('/productCount', async(req, res) =>{
